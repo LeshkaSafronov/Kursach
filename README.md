@@ -1,1 +1,1 @@
-# Kursach
+шифрование triple des
