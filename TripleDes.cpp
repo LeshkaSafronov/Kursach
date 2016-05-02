@@ -1,42 +1,13 @@
-#include <stdio.h>
 #include <iostream>
 #include <fstream>
-#include <string.h>
-#include <windows.h>
+#include <malloc.h>
 using namespace std;
-int cur, cnt;
-char data[8], _key1[8], _key2[8], _key3[8];
-ifstream input;
-ofstream output;
-int IP[4][16] = {
-            {57,49,41,33,25,17,9,1,59,51,43,35,27,19,11,3},
-            {61,53,45,37,29,21,13,5,63,55,47,39,31,23,15,7},
-            {56,48,40,32,24,16,8,0,58,50,42,34,26,18,10,2},
-            {60,52,44,36,28,20,12,4,62,54,46,38,30,22,14,6}
-        };
-int E[8][6] = {
-            {31,0,1,2,3,4},
-            {3,4,5,6,7,8},
-            {7,8,9,10,11,12},
-            {11,12,13,14,15,16},
-            {15,16,17,18,19,20},
-            {19,20,21,22,23,24},
-            {23,24,25,26,27,28},
-            {27,28,29,30,31,0}
-        };
-int G[4][14] = {
-            {56,48,40,32,24,16,8,0,57,49,41,33,25,17},
-            {9,1,58,50,42,34,26,18,10,2,59,51,43,35},
-            {62,54,46,38,30,22,14,6,61,53,45,37,29,21},
-            {13,5,60,52,44,36,28,20,12,4,27,19,11,3}
-        };
-int SHIFT_LEFT[16] = {1,1,2,2,2,2,2,2,1,2,2,2,2,2,2,1};
-int SHIFT_RIGHT[16] = {0,1,2,2,2,2,2,2,1,2,2,2,2,2,2,1};
-int H[3][16] = {
-            {13,16,10,23,0,4,2,27,14,5,20,9,22,18,11,3},
-            {25,7,15,6,26,19,12,1,40,51,30,36,46,54,29,39},
-            {50,44,32,47,43,48,38,55,33,52,45,41,49,35,28,31}
-    };
+int IP[64] = {57,49,41,33,25,17,9,1,59,51,43,35,27,19,11,3,61,53,45,37,29,21,13,5,63,55,47,39,31,23,15,7,56,48,40,32,24,16,8,0,58,50,42,34,26,18,10,2,60,52,44,36,28,20,12,4,62,54,46,38,30,22,14,6};
+int E[48] = {31,0,1,2,3,4,3,4,5,6,7,8,7,8,9,10,11,12,11,12,13,14,15,16,15,16,17,18,19,20,19,20,21,22,23,24,23,24,25,26,27,28,27,28,29,30,31,0};
+int G[56] = {56,48,40,32,24,16,8,0,57,49,41,33,25,17,9,1,58,50,42,34,26,18,10,2,59,51,43,35,62,54,46,38,30,22,14,6,61,53,45,37,29,21,13,5,60,52,44,36,28,20,12,4,27,19,11,3};
+int H[48] = {13,16,10,23,0,4,2,27,14,5,20,9,22,18,11,3,25,7,15,6,26,19,12,1,40,51,30,36,46,54,29,39,50,44,32,47,43,48,38,55,33,52,45,41,49,35,28,31};
+int shift_left[16] = {1,1,2,2,2,2,2,2,1,2,2,2,2,2,2,1};
+int shift_right[16] = {0,1,2,2,2,2,2,2,1,2,2,2,2,2,2,1};
 int S[8][4][16] ={
         {
             {14,4,13,1,2,15,11,8,3,10,6,12,5,9,0,7},
@@ -87,119 +58,63 @@ int S[8][4][16] ={
             {2,1,14,7,4,10,8,13,15,12,9,0,3,5,6,11}
         }
     };
-int P[8][4]= {
-        {15,6,19,20},
-        {28,11,27,16},
-        {0,14,22,25},
-        {4,17,30,9},
-        {1,7,23,13},
-        {31,26,2,8},
-        {18,12,29,5},
-        {21,10,3,24}
-    };
-int _IP[4][16] = {
-        {39,7,47,15,55,23,63,31,38,6,46,14,54,22,62,30},
-        {37,5,45,13,53,21,61,29,36,4,44,12,52,20,60,28},
-        {35,3,43,11,51,19,59,27,34,2,42,10,50,18,58,26},
-        {33,1,41,9,49,17,57,25,32,0,40,8,48,16,56,24}
-    };
-unsigned long long get_bits(char data[])
+int P[32]= {15,6,19,20,28,11,27,16,0,14,22,25,4,17,30,9,1,7,23,13,31,26,2,8,18,12,29,5,21,10,3,24};
+int _IP[64] = {39,7,47,15,55,23,63,31,38,6,46,14,54,22,62,30,37,5,45,13,53,21,61,29,36,4,44,12,52,20,60,28,35,3,43,11,51,19,59,27,34,2,42,10,50,18,58,26,33,1,41,9,49,17,57,25,32,0,40,8,48,16,56,24};
+unsigned long long to_bit(char * data)
 {
-    unsigned long long res=0;
-    for (int i=0; i<8; i++) {
-        for (int j=7; j>=0; j--) res=(res << 1) ^ ((data[i] >> j) & 1);
-        data[i]=0;
-    }
+    unsigned long long res = 0;
+    for (int i=0; i<8; i++)
+        for (int j=7; j>=0; j--) res = (res << 1) ^ ((data[i] >> j) & 1);
     return res;
 }
-void get_chars(unsigned long long out)
+unsigned long long to_bit_key(char * data)
 {
-    char output_data[8]={0};
-    int cnt=0;
-    for (int i=56; i>=0; i-=8) output_data[cnt++]=(out >> i) & ((1 << 8)-1);
-    for (int i=0; i<8; i++) output.write(&output_data[i],1);
+    unsigned long long res = 0;
+    for (int i=0; i<7; i++)
+        for (int j=7; j>=0; j--) res = (res << 1) ^ ((data[i] >> j) & 1);
+    return res;
 }
-
-bool check_IP(unsigned long long x, unsigned long long _x)
+unsigned long long to_IP(unsigned long long value)
 {
-    for (int i=0; i<4; i++)
-        for (int j=0; j<16; j++) {
-            int id2=i*16+j;
-            if (((x >> IP[i][j]) & 1) != ((_x >> id2) & 1)) return false;
-        }
-    return true;
+    unsigned long long res = 0;
+    for (int i=0; i<64; i++) res = res ^ (((value >> IP[i]) & 1) << i);
+    return res;
 }
-void transform_IP(unsigned long long &x)
+unsigned long long to_G(unsigned long long value)
 {
-    unsigned long long _x=0;
-    for (int i=0; i<4; i++)
-        for (int j=0; j<16; j++) {
-            int id1=IP[i][j], id2=i*16+j, w=(x >> id1) & 1;
-            _x=((((_x >> (id2+1)) << 1)^w) << id2) ^ (_x & (((unsigned long long)1 << id2)-1));
-        }
-    x=_x;
+    unsigned long long res = 0;
+    for (int i=0; i<56; i++) res = res ^ (((value >> G[i]) & 1) << i);
+    return res;
 }
-void transform_E(unsigned long long &x)
+unsigned long long to_H(unsigned long long value)
 {
-    unsigned long long _x=0;
-    for (int i=0; i<8; i++)
-        for (int j=0; j<6; j++) {
-            int id1=E[i][j], id2=i*6+j, w=(x >> id1) & 1;
-            _x=((((_x >> (id2+1)) << 1)^w) << id2) ^ (_x & (((unsigned long long)1 << id2)-1));
-        }
-    x=_x;
+    unsigned long long res = 0;
+    for (int i=0; i<48; i++) res = res ^ (((value >> H[i]) & 1) << i);
+    return res;
 }
-void transform_G(unsigned long long &x)
+unsigned long long to_E(unsigned long long value)
 {
-    unsigned long long _x=0;
-    for (int i=0; i<4; i++)
-        for (int j=0; j<14; j++) {
-            int id1=G[i][j], id2=i*14+j, w=(x >> id1) & 1;
-            _x=((((_x >> (id2+1)) << 1)^w) << id2) ^ (_x & (((unsigned long long)1 << id2)-1));
-        }
-    x=_x;
+    unsigned long long res = 0;
+    for (int i=0; i<48; i++) res = res ^ (((value >> E[i]) & 1) << i);
+    return res;
 }
-void transform_H(unsigned long long &x)
+unsigned long long to_P(unsigned long long value)
 {
-    unsigned long long _x=0;
-    for (int i=0; i<3; i++)
-        for (int j=0; j<16; j++) {
-            int id1=H[i][j], id2=i*16+j, w=(x >> id1) & 1;
-            _x=((((_x >> (id2+1)) << 1)^w) << id2) ^ (_x & (((unsigned long long)1 << id2)-1));
-        }
-    x=_x;
+    unsigned long long res = 0;
+    for (int i=0; i<32; i++) res = res ^ (((value >> P[i]) & 1) << i);
+    return res;
 }
-void transform_P(unsigned long long &x)
+unsigned long long to__IP(unsigned long long value)
 {
-    unsigned long long _x=0;
-    for (int i=0; i<8; i++)
-        for (int j=0; j<4; j++) {
-            int id1=P[i][j], id2=i*4+j, w=(x >> id1) & 1;
-            _x=((((_x >> (id2+1)) << 1)^w) << id2) ^ (_x & (((unsigned long long)1 << id2)-1));
-        }
-    x=_x;
+    unsigned long long res = 0;
+    for (int i=0; i<64; i++) res = res ^ (((value >> _IP[i]) & 1) << i);
+    return res;
 }
-void transform__IP(unsigned long long &x)
-{
-    unsigned long long _x=0;
-    for (int i=0; i<4; i++)
-        for (int j=0; j<16; j++) {
-            int id1=_IP[i][j], id2=i*16+j, w=(x >> id1) & 1;
-            _x=((((_x >> (id2+1)) << 1)^w) << id2) ^ (_x & (((unsigned long long)1 << id2)-1));
-        }
-    x=_x;
-}
-void print_bin(unsigned long long x)
-{
-    for (int i=63; i>=0; i--) printf("%d",(x >> i) & 1);
-    printf("\n");
-}
-
 unsigned long long f(unsigned long long R, unsigned long long key)
 {
-    unsigned long long b[8]={0}, new_R=0;
-    transform_E(R);
-    int cnt=0;
+    unsigned long long b[8]={0}, new_R = 0;
+    int cnt = 0;
+    R = to_E(R);
     R^=key;
     while (R!=0) {
         b[cnt++]=R & ((1 << 6)-1);
@@ -209,127 +124,91 @@ unsigned long long f(unsigned long long R, unsigned long long key)
         unsigned long long cur_block=S[7-i][((b[i] >> 5) << 1)^(b[i] & 1)][(b[i] >> 1) & ((1 << 4)-1)];
         new_R=(new_R << 4) ^ cur_block;
     }
-    transform_P(new_R);
+    return to_P(new_R);
 }
-unsigned long long get_next_key(unsigned long long &C, unsigned long long &D, int it)
+unsigned long long encode(unsigned long long value, unsigned long long key)
 {
-    C <<= SHIFT_LEFT[it];
-    D <<= SHIFT_LEFT[it];
-    unsigned long long K=(C << 32)^D;
-    transform_H(K);
-    return K;
-}
-unsigned long long get_previous_key(unsigned long long &C, unsigned long long &D, int it)
-{
-    C >>= SHIFT_RIGHT[it];
-    D >>= SHIFT_RIGHT[it];
-    unsigned long long K=(C << 32)^D;
-    transform_H(K);
-    return K;
-}
-void prepare_key(unsigned long long key, unsigned long long &C, unsigned long long &D)
-{
-    C=key >> 28;
-    D=key & ((1 << 28)-1);
-}
-unsigned long long encryption_des(unsigned long long x, unsigned long long key)
-{
-    unsigned long long C,D;
-    transform_IP(x);
-    transform_G(key);
-    prepare_key(key,C,D);
-    unsigned long long L=x >> 32, R=x & (((unsigned long long)1 << 32)-1), res=0;
+    value = to_IP(value);
+    unsigned long long L = value >> 32, R = value & (((unsigned long long)1 << 32) -1);
+    key = to_G(key);
+    unsigned long long C = key >> 28, D = key & (((unsigned long long)1 << 28) -1);
     for (int i=0; i<16; i++) {
-        key=get_next_key(C,D,i);
-        unsigned long long cur_L=R;
-        unsigned long long cur_R=L^f(R,key);
-        L=cur_L;
-        R=cur_R;
+        C <<= shift_left[i];
+        D <<= shift_left[i];
+        key = to_H((C << 32)^D);
+        unsigned long long new_L = R;
+        unsigned long long new_R = L ^ f(R,key);
+        L = new_L;
+        R = new_R;
     }
-    res=(L << 32)^R;
-    transform__IP(res);
-    return res;
+    return to__IP((L << 32)^R);
 }
-unsigned long long decryption_des(unsigned long long x, unsigned long long key)
+unsigned long long decode(unsigned long long value, unsigned long long key)
 {
-    unsigned long long C , D;
-    transform_IP(x);
-    transform_G(key);
-    prepare_key(key,C,D);
-    for (int i=0; i<16; i++) key=get_next_key(C,D,i);
-    unsigned long long L=x >> 32, R=x & (((unsigned long long)1 << 32)-1), res=0;
+    value = to_IP(value);
+    unsigned long long L = value >> 32, R = value & (((unsigned long long)1 << 32) -1);
+    key = to_G(key);
+    unsigned long long C = key >> 28, D = key & (((unsigned long long)1 << 28) -1);
     for (int i=0; i<16; i++) {
-        key=get_previous_key(C,D,i);
-        unsigned long long cur_L=R^f(L,key);
-        unsigned long long cur_R=L;
-        L=cur_L;
-        R=cur_R;
+        C <<= shift_left[i];
+        D <<= shift_left[i];
     }
-    res=(L << 32)^R;
-    transform__IP(res);
-    return res;
+    for (int i=0; i<16; i++) {
+        C >>= shift_right[i];
+        D >>= shift_right[i];
+        key = to_H((C << 32)^D);
+        unsigned long long new_L = R ^ f(L,key);
+        unsigned long long new_R = L;
+        L = new_L;
+        R = new_R;
+    }
+    return to__IP((L << 32)^R);
 }
-void control_key(unsigned long long &key)
+
+unsigned long long control_key(unsigned long long k)
 {
-    unsigned long long blocks[8]={0}, cntr_key=0, cnt=0;
-    while (key!=0) {
-        blocks[cnt]=key & ((1 << 7)-1);
+    unsigned long long res = 0;
+    int sum = 0, cnt = 0, cur_bit = 0;
+    for (int i=0; i<56; i++) {
         cnt++;
-        key >>= 7;
-    }
-    for (int i=7; i>=0; i--) {
-        int tmp=blocks[i], cnt=0;
-        while (tmp!=0) {
-            cnt+=tmp & 1;
-            tmp >>= 1;
+        sum+=(k >> i) & 1;
+        res = (((k >> i) & 1) << cur_bit) ^ res;
+        cur_bit++;
+        if (cnt % 7 == 0) {
+            res = ((unsigned long long)((sum % 2 == 0 ? 1 : 0) & 1) << cur_bit) ^ res;
+            cur_bit++;
+            sum = 0;
         }
-        if (cnt%2==0) blocks[i]=(1 << 7)^blocks[i];
-        cntr_key = (cntr_key << 8) ^ blocks[i];
     }
-    key=cntr_key;
+    return res;
 }
 int main(int argc, char *argv[])
 {
-    string op=argv[1];
-    input.open(argv[2],ifstream::binary);
-    output.open(argv[3],ofstream::binary);
+    string op = argv[1];
+    unsigned long long key1 = control_key(to_bit_key(argv[4]));
+    unsigned long long key2 = control_key(to_bit_key(argv[5]));
+    unsigned long long key3 = control_key(to_bit_key(argv[6]));
+    ifstream input (argv[2], std::ifstream::binary);
     input.seekg(0,input.end);
     int input_length=input.tellg();
     if (input_length%8!=0) input_length=(input_length/8)*8+8;
     input.seekg(0,input.beg);
-    printf("Insert keys\n");
-    scanf("%s",_key1);
-    scanf("%s",_key2);
-    scanf("%s",_key3);
-    unsigned long long key1=get_bits(_key1);
-    unsigned long long key2=get_bits(_key2);
-    unsigned long long key3=get_bits(_key3);
-    control_key(key1);
-    control_key(key2);
-    control_key(key3);
-    long long cnt_of_byte=0;
+
+    ofstream output (argv[3], std::ofstream::binary);
+    int cnt_of_byte=0;
     while (!input.eof()) {
-        char *buffer = new char;
-        input.read(buffer,1);
-        if (input.eof()) break;
-        if (cur==8) {
-            if (op=="/E" || op=="/e") get_chars(encryption_des(encryption_des(encryption_des(get_bits(data),key1),key2),key3));
-            else get_chars(decryption_des(decryption_des(decryption_des(get_bits(data),key3),key2),key1));
-            cnt_of_byte+=8;
-            printf("%I64d bytes complete (%1.f%c complete)\r",cnt_of_byte,cnt_of_byte/float(input_length)*100,'%');
-            cur=0;
+        char * data = (char *) calloc(8,sizeof(char));
+        input.read(data,8);
+        unsigned long long out;
+        if (op == "/E" || op == "/e") out = encode(encode(encode(to_bit(data), key1),key2),key3);
+        if (op == "/D" || op == "/d") out = decode(decode(decode(to_bit(data), key3),key2),key1);
+        for (int i=7; i>=0; i--) {
+            char * buf = new char;
+            * buf = (out >> (i*8)) & ((1 << 8)-1);
+            output.write(buf,1);
         }
-        data[cur++]=*buffer;
-    }
-    if (cur!=0) {
-        if (op=="/E" || op=="/e") get_chars(encryption_des(encryption_des(encryption_des(get_bits(data),key1),key2),key3));
-        else get_chars(decryption_des(decryption_des(decryption_des(get_bits(data),key3),key2),key1));
         cnt_of_byte+=8;
-        printf("%I64d bytes complete (%1.f%c complete)\r",cnt_of_byte,cnt_of_byte/float(input_length)*100,'%');
-    }
-    printf("\n");
-    if (op=="/E" || op=="/e") printf("Encryption complete\n");
-    else printf("Decryption complete\n");
-    input.close();
-    output.close();
+        printf("%d bytes complete (%1.f%% complete)\r",cnt_of_byte,cnt_of_byte/(float)input_length*100);
+        if (input.eof()) break;
+     }
 }
