@@ -185,10 +185,22 @@ unsigned long long control_key(unsigned long long k)
 int main(int argc, char *argv[])
 {
     string op = argv[1];
+    if (argc != 7) {
+        printf("Wrong count of argument\n");
+        return -2;
+    }
+    if (op != "/E" && op!="/e" && op!="/D" && op!= "/d") {
+        printf("Wrong argument\n");
+        return -2;
+    }
     unsigned long long key1 = control_key(to_bit_key(argv[4]));
     unsigned long long key2 = control_key(to_bit_key(argv[5]));
     unsigned long long key3 = control_key(to_bit_key(argv[6]));
     ifstream input (argv[2], std::ifstream::binary);
+    if (!input.is_open()) {
+        printf("Error opening file\n");
+        return -2;
+    }
     input.seekg(0,input.end);
     int input_length=input.tellg();
     if (input_length%8!=0) input_length=(input_length/8)*8+8;
@@ -198,6 +210,10 @@ int main(int argc, char *argv[])
     int cnt_of_byte=0;
     while (!input.eof()) {
         char * data = (char *) calloc(8,sizeof(char));
+        if (data == NULL) {
+            printf("Error\n");
+            return -1;
+        }
         input.read(data,8);
         unsigned long long out;
         if (op == "/E" || op == "/e") out = encode(encode(encode(to_bit(data), key1),key2),key3);
